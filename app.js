@@ -25,3 +25,35 @@ const booking=document.querySelector('[data-booking]');
 if(booking&&config.acuityUrl){try{const url=new URL(config.acuityUrl);if(url.protocol!=='https:'||!(url.hostname==='acuityscheduling.com'||url.hostname.endsWith('.acuityscheduling.com')||url.hostname==='as.me'||url.hostname.endsWith('.as.me')))throw Error('URL do Acuity inválida');booking.innerHTML='<div class="booking-placeholder"><h3>Sua agenda online</h3><p>Ao continuar, a agenda do Acuity será carregada e poderá usar cookies para permitir a reserva.</p><button class="btn" data-load-agenda>Carregar horários disponíveis</button></div>';booking.querySelector('button').addEventListener('click',()=>{booking.replaceChildren();const frame=document.createElement('iframe');frame.src=url.href;frame.title='Agendar um horário na EllaBeauty pelo Acuity';frame.setAttribute('allow','payment');booking.append(frame);const fallback=document.createElement('a');fallback.href=url.href;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.textContent='Abrir agenda em uma nova janela ↗';fallback.className='text-link';booking.append(fallback);const script=document.createElement('script');script.src='https://embed.acuityscheduling.com/js/embed.js';script.async=true;document.body.append(script)})}catch(e){console.warn(e.message)}}
 
 
+
+// Preferência de leitura compartilhada entre as páginas; funciona sem armazenamento.
+(() => {
+  const storageKey = 'ellabeauty-text-size';
+  const sizes = [100, 112.5, 125, 150, 175, 200];
+  let current = 0;
+  try { const saved = Number(localStorage.getItem(storageKey)); const found = sizes.indexOf(saved); if (found >= 0) current = found; } catch (_) {}
+  const toolbar = document.createElement('div');
+  toolbar.className = 'text-size-control';
+  toolbar.setAttribute('role', 'group');
+  toolbar.setAttribute('aria-label', 'Tamanho do texto');
+  toolbar.innerHTML = '<span>Tamanho do texto</span><button type="button" data-font-less aria-label="Diminuir tamanho do texto">A−</button><span class="text-size-status" role="status" aria-live="polite" aria-atomic="true"></span><button type="button" data-font-more aria-label="Aumentar tamanho do texto">A+</button><button type="button" data-font-reset aria-label="Restaurar tamanho padrão do texto">Restaurar</button>';
+  const host = document.querySelector('[data-header]');
+  if (!host) return;
+  host.append(toolbar);
+  const less = toolbar.querySelector('[data-font-less]');
+  const more = toolbar.querySelector('[data-font-more]');
+  const status = toolbar.querySelector('[role="status"]');
+  function apply(persist) {
+    document.documentElement.style.fontSize = sizes[current] + '%';
+    less.disabled = current === 0;
+    more.disabled = current === sizes.length - 1;
+    status.textContent = String(sizes[current]).replace('.', ',') + '%';
+    if (persist) { try { localStorage.setItem(storageKey, String(sizes[current])); } catch (_) {} }
+    // Reposiciona o slide atual após a mudança de dimensões.
+    window.dispatchEvent(new Event('resize'));
+  }
+  less.addEventListener('click', () => { current = Math.max(0, current - 1); apply(true); });
+  more.addEventListener('click', () => { current = Math.min(sizes.length - 1, current + 1); apply(true); });
+  toolbar.querySelector('[data-font-reset]').addEventListener('click', () => { current = 0; apply(true); });
+  apply(false);
+})();
